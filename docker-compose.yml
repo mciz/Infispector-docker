@@ -1,0 +1,71 @@
+zookeeper:
+  image: infynyxx/zookeeper
+  ports:
+    - "2181:2181"
+    - "22"
+
+kafka:
+  image: infynyxx/kafka
+  ports:
+    - "9092:9092"
+  links:
+    - zookeeper:zk
+  environment:
+    #localhost
+    KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+
+druidcoordinator:
+  build: druid
+  command: coordinator
+  links:
+    - zookeeper:zk
+    - mysql:mysql
+  ports:
+    - "8002:8002"
+  environment:
+    - MYSQL_ROOT_PASSWORD=doesntreallymatter
+    - MYSQL_USER=druid
+    - MYSQL_PASSWORD=diurd
+    - MYSQL_DATABASE=druid
+
+druidhistorical:
+  build: druid
+  command: historical
+  links:
+    - zookeeper:zk
+  ports:
+    - "8081:8081"
+  environment:
+    - s3_access_key=yolo
+    - s3_secret_key=yolo
+    - s3_bucket=nomi-druid-dev
+    - JAVA_MEMORY=1g
+
+druidbroker:
+  build: druid
+  command: broker
+  ports:
+    - "8080:8080"
+  links:
+    - zookeeper:zk
+
+druidoverlord:
+  build: druid
+  command: overlord
+  links:
+    - zookeeper:zk
+    - mysql:mysql
+  ports:
+    - "8087:8087"
+
+nimbus:
+  image: infynyxx/storm-nimbus
+  ports:
+    - "49773:3773"
+    - "49772:3772"
+    - "49627:6627"
+    - "22"
+  links:
+    - zookeeper:zk
